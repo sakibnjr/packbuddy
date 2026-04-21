@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PackBuddy</title>
+
+    <!-- PWA Meta -->
+    <meta name="theme-color" content="#6366f1" />
+    <link rel="manifest" href="manifest.json" />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body
+    class="bg-gradient-to-br from-indigo-100 via-white to-blue-100 min-h-screen flex items-center justify-center"
+  >
+    <div
+      class="w-full max-w-sm h-[92vh] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden"
+    >
+      <div class="px-5 pt-6 pb-4 border-b bg-white/80 backdrop-blur">
+        <div class="flex items-center justify-between">
+          <h1 class="text-xl font-semibold">🎒 PackBuddy</h1>
+          <span id="progressText" class="text-sm text-gray-500">0/0</span>
+        </div>
+        <p class="text-xs text-gray-400 mt-1">Never forget a thing</p>
+      </div>
+
+      <div
+        id="itemList"
+        class="flex-1 overflow-y-auto px-4 py-4 space-y-3"
+      ></div>
+
+      <div
+        id="emptyState"
+        class="hidden flex-1 flex flex-col items-center justify-center text-gray-400"
+      >
+        <p class="text-3xl">🎒</p>
+        <p class="mt-2 text-sm">No items yet</p>
+        <p class="text-xs">Start adding things to pack</p>
+      </div>
+
+      <div class="p-4 border-t bg-white">
+        <div class="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2">
+          <input
+            id="itemInput"
+            type="text"
+            placeholder="Add item..."
+            class="flex-1 bg-transparent outline-none text-sm"
+          />
+          <button
+            onclick="addItem()"
+            class="bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm shadow"
+          >
+            Add
+          </button>
+        </div>
+
+        <button
+          onclick="clearAll()"
+          class="w-full mt-3 text-xs text-red-500 hover:text-red-600"
+        >
+          Clear all
+        </button>
+      </div>
+    </div>
+
+    <script>
+      let items = JSON.parse(localStorage.getItem("packbuddy-items")) || [];
+
+      const input = document.getElementById("itemInput");
+
+      input.addEventListener("keypress", function (e) {
+        if (e.key === "Enter") addItem();
+      });
+
+      function saveItems() {
+        localStorage.setItem("packbuddy-items", JSON.stringify(items));
+      }
+
+      function renderItems() {
+        const list = document.getElementById("itemList");
+        const empty = document.getElementById("emptyState");
+        const progress = document.getElementById("progressText");
+
+        list.innerHTML = "";
+
+        if (items.length === 0) {
+          empty.classList.remove("hidden");
+          list.classList.add("hidden");
+          progress.innerText = "0/0";
+          return;
+        }
+
+        empty.classList.add("hidden");
+        list.classList.remove("hidden");
+
+        let checkedCount = 0;
+
+        items.forEach((item, index) => {
+          if (item.checked) checkedCount++;
+
+          const div = document.createElement("div");
+          div.className = `flex items-center justify-between px-4 py-3 rounded-xl shadow-sm border transition ${item.checked ? "bg-green-50 border-green-200" : "bg-white"}`;
+
+          div.innerHTML = `
+          <div class="flex items-center gap-3">
+            <input type="checkbox" ${item.checked ? "checked" : ""}
+              class="w-4 h-4 accent-indigo-500"
+              onchange="toggleItem(${index})" />
+            <span class="text-sm ${item.checked ? "line-through text-gray-400" : ""}">
+              ${item.text}
+            </span>
+          </div>
+          <button onclick="deleteItem(${index})" class="text-gray-400 hover:text-red-500 text-sm">
+            ✕
+          </button>
+        `;
+
+          list.appendChild(div);
+        });
+
+        progress.innerText = `${checkedCount}/${items.length}`;
+      }
+
+      function addItem() {
+        const text = input.value.trim();
+        if (!text) return;
+
+        items.push({ text, checked: false });
+        input.value = "";
+        saveItems();
+        renderItems();
+      }
+
+      function toggleItem(index) {
+        items[index].checked = !items[index].checked;
+        saveItems();
+        renderItems();
+      }
+
+      function deleteItem(index) {
+        items.splice(index, 1);
+        saveItems();
+        renderItems();
+      }
+
+      function clearAll() {
+        items = [];
+        saveItems();
+        renderItems();
+      }
+
+      renderItems();
+
+      // Register Service Worker
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("sw.js")
+            .then(() => console.log("Service Worker registered"))
+            .catch((err) => console.log("SW failed:", err));
+        });
+      }
+    </script>
+  </body>
+</html>
