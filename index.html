@@ -17,6 +17,33 @@
     <link rel="apple-touch-icon" href="icon.svg" />
 
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @keyframes confetti-fall {
+        0% {
+          opacity: 0;
+          transform: translateY(-16px) rotate(0deg) scale(0.85);
+        }
+        12% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(120px) rotate(540deg) scale(1);
+        }
+      }
+
+      .confetti-piece {
+        position: absolute;
+        top: 18%;
+        width: 8px;
+        height: 14px;
+        border-radius: 2px;
+        animation-name: confetti-fall;
+        animation-timing-function: ease-out;
+        animation-fill-mode: forwards;
+        will-change: transform, opacity;
+      }
+    </style>
   </head>
   <body
     class="m-0 overflow-hidden bg-white sm:bg-gradient-to-br sm:from-indigo-100 sm:via-white sm:to-blue-100 min-h-[100dvh] sm:min-h-screen sm:flex sm:items-center sm:justify-center"
@@ -71,8 +98,12 @@
       </div>
     </div>
 
+    <div id="confettiLayer" class="fixed inset-0 z-50 pointer-events-none overflow-hidden"></div>
+
     <script>
       let items = JSON.parse(localStorage.getItem("packbuddy-items")) || [];
+      let wasAllPacked = false;
+      let confettiCleanupTimer = null;
 
       const input = document.getElementById("itemInput");
 
@@ -95,6 +126,7 @@
           empty.classList.remove("hidden");
           list.classList.add("hidden");
           progress.innerText = "0/0";
+          wasAllPacked = false;
           return;
         }
 
@@ -127,6 +159,50 @@
         });
 
         progress.innerText = `${checkedCount}/${items.length}`;
+
+        const allPacked = checkedCount === items.length && items.length > 0;
+        if (allPacked && !wasAllPacked) {
+          spawnConfetti();
+        }
+        wasAllPacked = allPacked;
+      }
+
+      function spawnConfetti() {
+        const layer = document.getElementById("confettiLayer");
+        const colors = [
+          "#22c55e",
+          "#06b6d4",
+          "#6366f1",
+          "#f59e0b",
+          "#ec4899",
+          "#ef4444",
+        ];
+
+        layer.innerHTML = "";
+
+        for (let i = 0; i < 24; i++) {
+          const piece = document.createElement("span");
+          const left = Math.random() * 100;
+          const delay = Math.random() * 90;
+          const duration = 620 + Math.random() * 460;
+          const rotate = -40 + Math.random() * 80;
+          const color = colors[Math.floor(Math.random() * colors.length)];
+
+          piece.className = "confetti-piece";
+          piece.style.left = `${left}%`;
+          piece.style.backgroundColor = color;
+          piece.style.transform = `translateY(-16px) rotate(${rotate}deg)`;
+          piece.style.animationDuration = `${duration}ms`;
+          piece.style.animationDelay = `${delay}ms`;
+          piece.style.opacity = "0";
+
+          layer.appendChild(piece);
+        }
+
+        clearTimeout(confettiCleanupTimer);
+        confettiCleanupTimer = setTimeout(() => {
+          layer.innerHTML = "";
+        }, 1800);
       }
 
       function addItem() {
